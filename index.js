@@ -1,45 +1,64 @@
-const {Builder, By} = require('selenium-webdriver');
-const fs = require('fs');
+const { Builder, By } = require('selenium-webdriver');
 
-async function fetchAndExtractData(url, filePath) {
+async function fetchAndExtractData(url, timeDelay=10000) {
     let driver = await new Builder().forBrowser('chrome').build();
     try {
         // Navigate to the given webpage
         await driver.get(url);
 
         // Wait for the page to fully load
-        await driver.sleep(1000); // Adjust based on actual page load time
+        await driver.sleep(timeDelay); // Adjust based on actual page load time
 
-        // // Optional: Save the page source to a file for archival or further processing
-        // const pageSource = await driver.getPageSource();
-        // fs.writeFileSync(filePath, pageSource);
-        // console.log('Page source saved to:', filePath);
+        // Helper function to safely attempt to get text or attribute
+        async function safeGetText(selector, attribute = '') {
+            try {
+                let element;
+                if (selector.startsWith('//')) { // XPath
+                    element = await driver.findElement(By.xpath(selector));
+                } else { // CSS
+                    element = await driver.findElement(By.css(selector));
+                }
+                if (attribute) {
+                    return await element.getAttribute(attribute);
+                }
+                return await element.getText();
+            } catch (error) {
+                return ""
+            }
+        }
 
-        // Directly extract the required information
-        const name = await driver.findElement(By.css('directory-search-result h2')).getText();
-        const address = await driver.findElement(By.xpath("//p[label[contains(text(), 'Address')]]")).getText();
-        const website = await driver.findElement(By.xpath("//p[label[contains(text(), 'Website')]]/a")).getAttribute("href");
-        const mobile = await driver.findElement(By.xpath("//p[label[contains(text(), 'Mobile')]]/a")).getAttribute("href");
-        const homeDepartment = await driver.findElement(By.xpath("//p[label[contains(text(), 'Home department')]]")).getText();
-        const uid = await driver.findElement(By.xpath("//p[label[contains(text(), 'UID')]]")).getText();
+        // Extract information if available
+        const name = await safeGetText('directory-search-result h2');
+        const title = await safeGetText("//p[label[contains(text(), 'Title')]]");
+        const address = await safeGetText("//p[label[contains(text(), 'Address')]]");
+        const website = await safeGetText("//p[label[contains(text(), 'Website')]]/a", 'href');
+        const mobile = await safeGetText("//p[label[contains(text(), 'Mobile')]]/a", 'href');
+        const homeDepartment = await safeGetText("//p[label[contains(text(), 'Home department')]]");
+        const uid = await safeGetText("//p[label[contains(text(), 'UID')]]");
 
-        console.log(`Name: ${name}`);
-        console.log(`Address: ${address.replace(/\n/g, " ").split(" ").slice(1).join(" ")}`);
-        console.log(`Website: ${website}`);
-        console.log(`Mobile: ${mobile.replaceAll("tel:", "")}`);
-        console.log(`Home Department: ${homeDepartment.split("\n")[1]}`);
-        console.log(`UID: ${uid.split("\n")[1]}`);
+        if (name === "" || title === "" || address === "" || website === "" || mobile === "" || homeDepartment === "" || uid === "") {
+            console.log("no responsible")
+        } else {
+            console.log(`Name: ${name}`);
+            console.log(`Title: ${title.split('\n').pop()}`); // Assuming format is "Label\nValue"
+            console.log(`Address: ${address.split('\n').pop()}`);
+            console.log(`Website: ${website}`);
+            console.log(`Mobile: ${mobile.replace('tel:', '')}`);
+            console.log(`Home Department: ${homeDepartment.split('\n').pop()}`);
+            console.log(`UID: ${uid.split('\n').pop()}`);
+        }
     } catch (error) {
         console.error('An error occurred:', error);
     } finally {
-        await driver.quit(); // Ensure the driver quits regardless of outcome
+        await driver.quit();
     }
 }
 
-const url = 'https://www.berkeley.edu/directory/?search-term=csu%40berkeley.edu';
-const filePath = 'pageSource.html'; // Path where you want to save the HTML file
+async function main(){
+    const url = 'https://www.berkeley.edu/directory/?search-term=meme@berkeley.edu'
+    const timeDelay = 1 // seconds
+    const output = await fetchAndExtractData(url, timeDelay*1000)
+}
 
-fetchAndExtractData(url, filePath)
-    .then(() => console.log('Data extraction complete.'))
-    .catch(error => console.error('Extraction failed:', error));
-
+// main function calls
+main().then()
