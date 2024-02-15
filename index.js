@@ -54,6 +54,7 @@ async function fetchAndExtractData(url, timeDelay=10000) {
             "homeDepartment": homeDepartment.split('\n').pop(),
             "uid": uid.split('\n').pop()
         }
+
     } catch (error) {
         output = undefined
     } finally {
@@ -116,6 +117,8 @@ async function main(spreadSheetPath) {
         }
 
         const email = row["Row Labels"].replaceAll(" ", "");
+
+        // (2-14-2024) hardcoded URL
         const url = `https://www.berkeley.edu/directory/?search-term=${email}`;
 
         const scrape = await fetchAndExtractData(url, 1 * 1000);
@@ -174,20 +177,15 @@ async function main(spreadSheetPath) {
 }
 
 async function promptAndExecute() {
-    // Use readline to prompt the user for the file name
     readline.question('XLSX Filename/Path: ', (fileName) => {
-        // main function calls with the provided file name
         main(fileName).then(() => {
-            console.log('Main function execution completed.');
-            // Close the readline interface after the operation
             readline.close();
         }).catch((error) => {
-            console.error('An error occurred:', error);
             readline.close();
         });
     });
 }
 
-// main function calls
+// main function call(s)
 promptAndExecute();
 
