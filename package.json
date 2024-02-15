@@ -5,6 +5,7 @@
   "license": "MIT",
   "dependencies": {
     "jsdom": "^24.0.0",
-    "selenium-webdriver": "^4.17.0"
+    "selenium-webdriver": "^4.17.0",
+    "xlsx": "^0.18.5"
   }
 }
