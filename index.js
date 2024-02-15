@@ -1,17 +1,22 @@
-const {Builder, By, until} = require('selenium-webdriver');
+const {Builder} = require('selenium-webdriver');
 
-async function scrapeWebsiteText(url, elementId) {
+async function savePageSource(url, filePath) {
     let driver = await new Builder().forBrowser('chrome').build();
     try {
         // Navigate to the given webpage
         await driver.get(url);
 
-        // Wait for the specific element to be loaded
-        await driver.wait(until.elementLocated(By.id(elementId)), 10000);
+        // Wait for the page to fully load
+        // This step may need to be customized based on how the page loads content
+        await driver.sleep(10000); // Example: wait for 10 seconds
 
-        // Find the element and get its text
-        let elementText = await driver.findElement(By.id(elementId)).getText();
-        return elementText;  // Return the text of the element
+        // Get the source of the loaded page
+        const pageSource = await driver.getPageSource();
+
+        // Save the page source to a file
+        const fs = require('fs');
+        fs.writeFileSync(filePath, pageSource);
+        console.log('Page source saved to:', filePath);
     } catch (error) {
         console.error('An error occurred:', error);
     } finally {
@@ -19,11 +24,11 @@ async function scrapeWebsiteText(url, elementId) {
     }
 }
 
-// Example usage:
+// Example usage
 const url = 'https://www.berkeley.edu/directory/?search-term=csu%40berkeley.edu';
-const elementId = 'directory-search-result';
+const filePath = 'pageSource.html';  // Path where you want to save the HTML file
 
-scrapeWebsiteText(url, elementId)
-    .then(text => console.log('Element text:', text))
+savePageSource(url, filePath)
+    .then(() => console.log('Done'))
     .catch(error => console.error('Scraping failed:', error));
 
