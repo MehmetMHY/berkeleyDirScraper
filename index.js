@@ -10,14 +10,13 @@ async function fetchAndExtractData(url, filePath) {
         // Wait for the page to fully load
         await driver.sleep(1000); // Adjust based on actual page load time
 
-        // Optional: Save the page source to a file for archival or further processing
-        const pageSource = await driver.getPageSource();
-        fs.writeFileSync(filePath, pageSource);
-        console.log('Page source saved to:', filePath);
+        // // Optional: Save the page source to a file for archival or further processing
+        // const pageSource = await driver.getPageSource();
+        // fs.writeFileSync(filePath, pageSource);
+        // console.log('Page source saved to:', filePath);
 
         // Directly extract the required information
         const name = await driver.findElement(By.css('directory-search-result h2')).getText();
-        const title = await driver.findElement(By.xpath("//p[label[contains(text(), 'Title')]]")).getText();
         const address = await driver.findElement(By.xpath("//p[label[contains(text(), 'Address')]]")).getText();
         const website = await driver.findElement(By.xpath("//p[label[contains(text(), 'Website')]]/a")).getAttribute("href");
         const mobile = await driver.findElement(By.xpath("//p[label[contains(text(), 'Mobile')]]/a")).getAttribute("href");
@@ -25,12 +24,11 @@ async function fetchAndExtractData(url, filePath) {
         const uid = await driver.findElement(By.xpath("//p[label[contains(text(), 'UID')]]")).getText();
 
         console.log(`Name: ${name}`);
-        console.log(`Title: ${title}`);
-        console.log(`Address: ${address}`);
+        console.log(`Address: ${address.replace(/\n/g, " ").split(" ").slice(1).join(" ")}`);
         console.log(`Website: ${website}`);
-        console.log(`Mobile: ${mobile}`);
-        console.log(`Home Department: ${homeDepartment}`);
-        console.log(`UID: ${uid}`);
+        console.log(`Mobile: ${mobile.replaceAll("tel:", "")}`);
+        console.log(`Home Department: ${homeDepartment.split("\n")[1]}`);
+        console.log(`UID: ${uid.split("\n")[1]}`);
     } catch (error) {
         console.error('An error occurred:', error);
     } finally {
