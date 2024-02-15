@@ -123,6 +123,8 @@ async function main(spreadSheetPath) {
 
         const scrape = await fetchAndExtractData(url, 1 * 1000);
 
+        console.log(`info - raw scrape: ${JSON.stringify(scrape)}`)
+
         if (scrape === undefined) {
             console.log(`error - failed to scrape ${url}`);
             continue;
