@@ -70,28 +70,28 @@ function readXlsxFile(filePath) {
     return sheetJson;
 }
 
-// {
-//     "Attention Name": " Cox Lab, RM 375E",
-//     "Row Labels": "okie@berkeley.edu",
-//     " Sum of Ext Price ": 562.79,
-//     "First Order": 44201.59869212963,
-//     "Last Order": 44321.89335648148
-// },
-// {
-//     "Attention Name": " Nicholas Hadler",
-//     X "First Name": "Nicholas ",
-//     X "Last Name": "Hadler",
-//     X "Address": "CCHEM - Dept Of Chemistry",
-//     "Row Labels": "nhadler@berkeley.edu",
-//     " Sum of Ext Price ": 558.12,
-//     "First Order": 44964.886979166666,
-//     "Last Order": 45125.880949074075
-// },
-
 async function main() {
     const spreadSheet = readXlsxFile('ucb_customer_list.xlsx')
+
+    if (spreadSheet.length === 0) {
+        console.log(`info - spreadsheet is empty, so we are not scrapping`)
+        return
+    }
+
+    const columnOrder = Object.keys(spreadSheet[0]);
+
+    let rowNumber = -1
     for(let row of spreadSheet) {
+        rowNumber += 1
+
+        console.log(`\nProcessing row ${rowNumber} / ${spreadSheet.length}`)
+
         if (!Object.keys(row).includes("Attention Name")) {
+            continue
+        }
+
+        if (row["First Name"] !== undefined) {
+            console.log(`info - row ${rowNumber} has a "First Name" so it's being skipped...`)
             continue
         }
 
@@ -121,18 +121,18 @@ async function main() {
         row["Last Name"] = lastName
         row["Address"] = scrape["homeDepartment"]
 
+        console.log(`info - finished processing ${url}`)
         console.log(JSON.stringify(row, null, indent=4))
-        console.log("\n")
+
         break
     }
-}
 
-// async function main(){
-//     const url = 'https://www.berkeley.edu/directory/?search-term=jfletcher@berkeley.edu'
-//     const timeDelay = 1 // seconds
-//     const output = await fetchAndExtractData(url, timeDelay*1000)
-//     console.log(JSON.stringify(output, null, indent=4))
-// }
+    // after processing all rows, save the updated data to a new XLSX file
+    const newWorkbook = XLSX.utils.book_new();
+    const newWorksheet = XLSX.utils.json_to_sheet(spreadSheet);
+    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Updated Data');
+    XLSX.writeFile(newWorkbook, 'NEW_ucb_customer_list.xlsx');
+}
 
 // main function calls
 main().then()
