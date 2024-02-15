@@ -2,6 +2,11 @@ const { Builder, By } = require('selenium-webdriver');
 const XLSX = require('xlsx');
 const fs = require('fs');
 
+const readline = require('readline').createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
+
 async function fetchAndExtractData(url, timeDelay=10000) {
     let output = {}
 
@@ -168,7 +173,21 @@ async function main(spreadSheetPath) {
     console.log('All done!');
 }
 
+async function promptAndExecute() {
+    // Use readline to prompt the user for the file name
+    readline.question('XLSX Filename/Path: ', (fileName) => {
+        // main function calls with the provided file name
+        main(fileName).then(() => {
+            console.log('Main function execution completed.');
+            // Close the readline interface after the operation
+            readline.close();
+        }).catch((error) => {
+            console.error('An error occurred:', error);
+            readline.close();
+        });
+    });
+}
+
 // main function calls
-main("ucb_customer_list.xlsx").then(
-    () => console.log('Main function execution completed.')
-);
+promptAndExecute();
+
