@@ -1,6 +1,8 @@
 const { Builder, By } = require('selenium-webdriver');
 
 async function fetchAndExtractData(url, timeDelay=10000) {
+    let output = {}
+
     let driver = await new Builder().forBrowser('chrome').build();
     try {
         // Navigate to the given webpage
@@ -36,28 +38,29 @@ async function fetchAndExtractData(url, timeDelay=10000) {
         const homeDepartment = await safeGetText("//p[label[contains(text(), 'Home department')]]");
         const uid = await safeGetText("//p[label[contains(text(), 'UID')]]");
 
-        if (name === "" || title === "" || address === "" || website === "" || mobile === "" || homeDepartment === "" || uid === "") {
-            console.log("no responsible")
-        } else {
-            console.log(`Name: ${name}`);
-            console.log(`Title: ${title.split('\n').pop()}`); // Assuming format is "Label\nValue"
-            console.log(`Address: ${address.split('\n').pop()}`);
-            console.log(`Website: ${website}`);
-            console.log(`Mobile: ${mobile.replace('tel:', '')}`);
-            console.log(`Home Department: ${homeDepartment.split('\n').pop()}`);
-            console.log(`UID: ${uid.split('\n').pop()}`);
+        output = {
+            "name": name,
+            "title": title.split('\n').pop(),
+            "address": address.split('\n').pop(),
+            "website": website,
+            "mobile": mobile.replace('tel:', ''),
+            "homeDepartment": homeDepartment.split('\n').pop(),
+            "uid": uid.split('\n').pop()
         }
     } catch (error) {
-        console.error('An error occurred:', error);
+        output = undefined
     } finally {
         await driver.quit();
     }
+
+    return output
 }
 
 async function main(){
-    const url = 'https://www.berkeley.edu/directory/?search-term=meme@berkeley.edu'
+    const url = 'https://www.berkeley.edu/directory/?search-term=rinaest@berkeley.edu'
     const timeDelay = 1 // seconds
     const output = await fetchAndExtractData(url, timeDelay*1000)
+    console.log(JSON.stringify(output, null, indent=4))
 }
 
 // main function calls
