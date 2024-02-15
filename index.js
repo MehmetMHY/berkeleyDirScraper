@@ -1,11 +1,4 @@
 const { Builder, By } = require('selenium-webdriver');
-const XLSX = require('xlsx');
-const fs = require('fs');
-
-const readline = require('readline').createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
 
 async function fetchAndExtractData(url, timeDelay=10000) {
     let output = {}
@@ -64,130 +57,51 @@ async function fetchAndExtractData(url, timeDelay=10000) {
     return output
 }
 
-function readXlsxFile(filePath) {
-    // read the XLSX file
-    const workbook = XLSX.readFile(filePath);
+function filterValidEmails(arr) {
+    const processedArr = arr
+        .map(str => str.replace(/\s+/g, '')) // remove spaces
+        .filter(str => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str)) // keep valid emails
+        .filter((value, index, self) => self.indexOf(value) === index); // remove duplicates
 
-    // get the name of the first sheet
-    const sheetName = workbook.SheetNames[0];
-
-    // convert the sheet to JSON
-    const sheetJson = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-
-    return sheetJson;
+    return processedArr;
 }
 
-function saveJsonToFile(jsonData, filePath) {
-    // convert JSON object to string
-    const dataString = JSON.stringify(jsonData, null, 2); // pretty-print with 2 spaces indentation
+async function extractByEmails(emails) {
+    emails = filterValidEmails(emails)
 
-    // write the string to a file
-    fs.writeFile(filePath, dataString, 'utf8', (err) => {
-        if (err) {
-            console.error('An error occurred while saving the JSON to file:', err);
-            return;
-        }
-        console.log('JSON saved successfully to', filePath);
-    });
-}
+    const output = {}
+    for (let email of emails) {
+        try {
+            // (2-14-2024) hardcoded URL
+            const url = `https://www.berkeley.edu/directory/?search-term=${email}`;
 
-async function main(spreadSheetPath) {
-    const spreadSheet = readXlsxFile(spreadSheetPath);
-
-    if (spreadSheet.length === 0) {
-        console.log(`info - spreadsheet is empty, so we are not scrapping`);
-        return;
-    }
-
-    const columnOrder = Object.keys(spreadSheet[0]);
-
-    let rowNumber = -1;
-    for (let row of spreadSheet) {
-        rowNumber += 1;
-
-        console.log(`\nProcessing row ${rowNumber} / ${spreadSheet.length}`);
-
-        if (!Object.keys(row).includes("Attention Name")) {
-            continue;
-        }
-
-        if (row["First Name"] !== undefined) {
-            console.log(`info - row ${rowNumber} has a "First Name" so it's being skipped...`);
-            continue;
-        }
-
-        const email = row["Row Labels"].replaceAll(" ", "");
-
-        // (2-14-2024) hardcoded URL
-        const url = `https://www.berkeley.edu/directory/?search-term=${email}`;
-
-        const scrape = await fetchAndExtractData(url, 1 * 1000);
-
-        console.log(`info - raw scrape: ${JSON.stringify(scrape)}`)
-
-        if (scrape === undefined) {
-            console.log(`error - failed to scrape ${url}`);
-            continue;
-        }
-
-        // extract first and last name from scrape
-        let fullName = scrape["name"].split(" ");
-        let firstName = "";
-        let lastName = "";
-        if (fullName.length === 3) {
-            firstName = fullName[0];
-            lastName = fullName[2];
-        } else if (fullName.length === 2) {
-            firstName = fullName[0];
-            lastName = fullName[1];
-        }
-
-        let updatedRow = {};
-        for (let column of columnOrder) {
-            switch (column) {
-                case "First Name":
-                    updatedRow[column] = firstName;
-                    break;
-                case "Last Name":
-                    updatedRow[column] = lastName;
-                    break;
-                case "Address":
-                    updatedRow[column] = scrape["homeDepartment"];
-                    break;
-                default:
-                    updatedRow[column] = row[column]; // Copy original value for other columns
+            // use a 1 second delay, it works but you might need to tune this
+            let scrape = await fetchAndExtractData(url, 1 * 1000);
+            if (scrape === undefined) {
+                scrape = null
             }
+
+            output[email] = scrape
+        } catch(err) {
+            output[email] = null
         }
-
-        // replace the original row in the spreadsheet with the updated row
-        spreadSheet[rowNumber] = updatedRow;
-
-        console.log(`info - finished processing ${url} (row = ${rowNumber}) : ${JSON.stringify(updatedRow)}`);
     }
 
-    console.log()
-
-    saveJsonToFile(spreadSheet, `NEW_${spreadSheetPath.replace(".xlsx", "")}.json`)
-
-    // after processing all rows, save the updated data to a new XLSX file
-    const newWorkbook = XLSX.utils.book_new();
-    const newWorksheet = XLSX.utils.json_to_sheet(spreadSheet, {header: columnOrder});
-    XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Updated Data');
-    XLSX.writeFile(newWorkbook, `NEW_${spreadSheetPath}`);
-
-    console.log('All done!');
+    return output
 }
 
-async function promptAndExecute() {
-    readline.question('XLSX Filename/Path: ', (fileName) => {
-        main(fileName).then(() => {
-            readline.close();
-        }).catch((error) => {
-            readline.close();
-        });
-    });
+// NOTE: this is just an example, learn from it and remove it when you are done
+async function example() {
+    const emails = [
+        "doudna@berkeley.edu",
+        "example@berkeley.edu"
+    ]
+
+    const output = await extractByEmails(emails)
+
+    console.log(JSON.stringify(output, null, indent=4))
 }
 
 // main function call(s)
-promptAndExecute();
+example().then()
 
