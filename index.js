@@ -1,5 +1,6 @@
 const { Builder, By } = require('selenium-webdriver');
 const XLSX = require('xlsx');
+const fs = require('fs');
 
 async function fetchAndExtractData(url, timeDelay=10000) {
     let output = {}
@@ -70,70 +71,105 @@ function readXlsxFile(filePath) {
     return sheetJson;
 }
 
-async function main() {
-    const spreadSheet = readXlsxFile('ucb_customer_list.xlsx')
+function saveJsonToFile(jsonData, filePath) {
+    // convert JSON object to string
+    const dataString = JSON.stringify(jsonData, null, 2); // pretty-print with 2 spaces indentation
+
+    // write the string to a file
+    fs.writeFile(filePath, dataString, 'utf8', (err) => {
+        if (err) {
+            console.error('An error occurred while saving the JSON to file:', err);
+            return;
+        }
+        console.log('JSON saved successfully to', filePath);
+    });
+}
+
+async function main(spreadSheetPath) {
+    const spreadSheet = readXlsxFile(spreadSheetPath);
 
     if (spreadSheet.length === 0) {
-        console.log(`info - spreadsheet is empty, so we are not scrapping`)
-        return
+        console.log(`info - spreadsheet is empty, so we are not scrapping`);
+        return;
     }
 
     const columnOrder = Object.keys(spreadSheet[0]);
 
-    let rowNumber = -1
-    for(let row of spreadSheet) {
-        rowNumber += 1
+    let rowNumber = -1;
+    for (let row of spreadSheet) {
+        rowNumber += 1;
 
-        console.log(`\nProcessing row ${rowNumber} / ${spreadSheet.length}`)
+        console.log(`\nProcessing row ${rowNumber} / ${spreadSheet.length}`);
 
         if (!Object.keys(row).includes("Attention Name")) {
-            continue
+            continue;
         }
 
         if (row["First Name"] !== undefined) {
-            console.log(`info - row ${rowNumber} has a "First Name" so it's being skipped...`)
-            continue
+            console.log(`info - row ${rowNumber} has a "First Name" so it's being skipped...`);
+            continue;
         }
 
-        const email = row["Row Labels"].replaceAll(" ", "")
-        const url = `https://www.berkeley.edu/directory/?search-term=${email}`
+        const email = row["Row Labels"].replaceAll(" ", "");
+        const url = `https://www.berkeley.edu/directory/?search-term=${email}`;
 
-        const scrape = await fetchAndExtractData(url, 1*1000)
+        const scrape = await fetchAndExtractData(url, 1 * 1000);
 
         if (scrape === undefined) {
-            console.log(`error - failed to scrape ${url}`)
-            continue
+            console.log(`error - failed to scrape ${url}`);
+            continue;
         }
 
-        // extract first and last name from scrape
-        let fullName = scrape["name"].split(" ")
-        let firstName = ""
-        let lastName = ""
+        // Extract first and last name from scrape
+        let fullName = scrape["name"].split(" ");
+        let firstName = "";
+        let lastName = "";
         if (fullName.length === 3) {
-            firstName = fullName[0]
-            lastName = fullName[2]
+            firstName = fullName[0];
+            lastName = fullName[2];
         } else if (fullName.length === 2) {
-            firstName = fullName[0]
-            lastName = fullName[1]
+            firstName = fullName[0];
+            lastName = fullName[1];
         }
 
-        row["First Name"] = firstName
-        row["Last Name"] = lastName
-        row["Address"] = scrape["homeDepartment"]
+        let updatedRow = {};
+        for (let column of columnOrder) {
+            switch (column) {
+                case "First Name":
+                    updatedRow[column] = firstName;
+                    break;
+                case "Last Name":
+                    updatedRow[column] = lastName;
+                    break;
+                case "Address":
+                    updatedRow[column] = scrape["homeDepartment"];
+                    break;
+                default:
+                    updatedRow[column] = row[column]; // Copy original value for other columns
+            }
+        }
 
-        console.log(`info - finished processing ${url}`)
-        console.log(JSON.stringify(row, null, indent=4))
+        // Replace the original row in the spreadsheet with the updated row
+        spreadSheet[rowNumber] = updatedRow;
 
+        console.log(`info - finished processing ${url} (row = ${rowNumber}) : ${JSON.stringify(updatedRow)}`);
+        
+        // TODO: remove after testing
         break
     }
 
-    // after processing all rows, save the updated data to a new XLSX file
+    console.log()
+
+    saveJsonToFile(spreadSheet, `NEW_${spreadSheetPath.replace(".xlsx", "")}.json`)
+
+    // After processing all rows, save the updated data to a new XLSX file
     const newWorkbook = XLSX.utils.book_new();
-    const newWorksheet = XLSX.utils.json_to_sheet(spreadSheet);
+    const newWorksheet = XLSX.utils.json_to_sheet(spreadSheet, {header: columnOrder});
     XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Updated Data');
-    XLSX.writeFile(newWorkbook, 'NEW_ucb_customer_list.xlsx');
+    XLSX.writeFile(newWorkbook, `NEW_${spreadSheetPath}`);
+
+    console.log('All done!');
 }
 
 // main function calls
-main().then()
-
+main("ucb_customer_list.xlsx").then(() => console.log('Main function execution completed.'));
