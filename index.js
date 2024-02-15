@@ -153,9 +153,6 @@ async function main(spreadSheetPath) {
         spreadSheet[rowNumber] = updatedRow;
 
         console.log(`info - finished processing ${url} (row = ${rowNumber}) : ${JSON.stringify(updatedRow)}`);
-        
-        // TODO: remove after testing
-        break
     }
 
     console.log()
