@@ -7,13 +7,13 @@ async function fetchAndExtractData(url, timeDelay=10000) {
 
     let driver = await new Builder().forBrowser('chrome').build();
     try {
-        // Navigate to the given webpage
+        // navigate to the given webpage
         await driver.get(url);
 
-        // Wait for the page to fully load
+        // wait for the page to fully load
         await driver.sleep(timeDelay); // Adjust based on actual page load time
 
-        // Helper function to safely attempt to get text or attribute
+        // helper function to safely attempt to get text or attribute
         async function safeGetText(selector, attribute = '') {
             try {
                 let element;
@@ -31,7 +31,7 @@ async function fetchAndExtractData(url, timeDelay=10000) {
             }
         }
 
-        // Extract information if available
+        // extract information if available
         const name = await safeGetText('directory-search-result h2');
         const title = await safeGetText("//p[label[contains(text(), 'Title')]]");
         const address = await safeGetText("//p[label[contains(text(), 'Address')]]");
@@ -120,7 +120,7 @@ async function main(spreadSheetPath) {
             continue;
         }
 
-        // Extract first and last name from scrape
+        // extract first and last name from scrape
         let fullName = scrape["name"].split(" ");
         let firstName = "";
         let lastName = "";
@@ -149,7 +149,7 @@ async function main(spreadSheetPath) {
             }
         }
 
-        // Replace the original row in the spreadsheet with the updated row
+        // replace the original row in the spreadsheet with the updated row
         spreadSheet[rowNumber] = updatedRow;
 
         console.log(`info - finished processing ${url} (row = ${rowNumber}) : ${JSON.stringify(updatedRow)}`);
@@ -159,7 +159,7 @@ async function main(spreadSheetPath) {
 
     saveJsonToFile(spreadSheet, `NEW_${spreadSheetPath.replace(".xlsx", "")}.json`)
 
-    // After processing all rows, save the updated data to a new XLSX file
+    // after processing all rows, save the updated data to a new XLSX file
     const newWorkbook = XLSX.utils.book_new();
     const newWorksheet = XLSX.utils.json_to_sheet(spreadSheet, {header: columnOrder});
     XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Updated Data');
@@ -169,4 +169,6 @@ async function main(spreadSheetPath) {
 }
 
 // main function calls
-main("ucb_customer_list.xlsx").then(() => console.log('Main function execution completed.'));
+main("ucb_customer_list.xlsx").then(
+    () => console.log('Main function execution completed.')
+);
