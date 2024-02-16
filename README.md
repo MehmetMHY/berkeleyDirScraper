@@ -30,3 +30,8 @@ A simple web scraper for [Berkeley's Campus Directory](https://www.berkeley.edu/
     ```
     export DEBUG="true"
     ```
+
+<div style="height: 100px;"></div>
+<p align="center">
+  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Seal_of_University_of_California%2C_Berkeley.svg/1920px-Seal_of_University_of_California%2C_Berkeley.svg.png" width="150">
+</p>
