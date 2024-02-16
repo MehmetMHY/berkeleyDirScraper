@@ -24,5 +24,9 @@ A simple web scraper for [Berkeley's Campus Directory](https://www.berkeley.edu/
     ```
 8. Run the script:
     ```
-    node index.js
+    node example.js
+    ```
+9. (optional) If something looks off, run the script in debug-mode by exporting the following environment variable and follow though steps 1 though 8 again:
+    ```
+    export DEBUG="true"
     ```
