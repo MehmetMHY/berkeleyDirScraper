@@ -14,8 +14,12 @@ async function main() {
         "example@berkeley.edu"
     ]
 
+    console.log(`Scrapping ${emails.length} Berkeley users' data`)
+    console.log(`Estimated Runtime: ${((emails.length * 1) * 4).toFixed(2)} seconds`)
+
     const output = await utils.extractByEmails(emails)
 
+    console.log(`Scrapped Data (Output):`)
     console.log(JSON.stringify(output, null, indent=4))
 }
 
